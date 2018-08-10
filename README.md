@@ -1,2 +1,2 @@
 # PendingReboot
-Module to detect Windows OS pending reboots.......
+Module to detect Windows OS pending reboots.
