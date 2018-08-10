@@ -72,20 +72,6 @@
 .NOTES
     Author:  Brian Wilhite
     Email:   bcwilhite (at) live.com
-    Date:    29AUG2012
-    PSVer:   2.0/3.0/4.0/5.0
-    Updated: 27JUL2015
-    UpdNote: Added Domain Join detection to PendComputerRename, does not detect Workgroup Join/Change
-             Fixed Bug where a computer rename was not detected in 2008 R2 and above if a domain join occurred at the same time.
-             Fixed Bug where the CBServicing wasn't detected on Windows 10 and/or Windows Server Technical Preview (2016)
-             Added CCMClient property - Used with SCCM 2012 Clients only
-             Added ValueFromPipelineByPropertyName=$true to the ComputerName Parameter
-             Removed $Data variable from the PSObject - it is not needed
-             Bug with the way CCMClientSDK returned null value if it was false
-             Removed unneeded variables
-             Added PendFileRenVal - Contents of the PendingFileRenameOperations Reg Entry
-             Removed .Net Registry connection, replaced with WMI StdRegProv
-             Added ComputerPendingRename
 #>
 
 function Test-PendingReboot
@@ -99,7 +85,15 @@ function Test-PendingReboot
 
         [Parameter()]
         [Switch]
-        $Detailed
+        $Detailed,
+
+        [Parameter()]
+        [Switch]
+        $SkipConfigurationManagerClientCheck,
+
+        [Parameter()]
+        [Switch]
+        $IgnorePendingFileRenameOperations
     )
 
     process
@@ -108,42 +102,34 @@ function Test-PendingReboot
         {
             try
             {
-                ## Setting pending values to false to cut down on the number of else statements
-                $pendingComputerRenameOrDomainJoin = $false
-                $pendingFileRenameOperation        = $false
-                $systemCenterConfigManager         = $false
-
                 ## Making registry connection to the local/remote computer
                 $hklm = [UInt32] "0x80000002"
                 $wmiStdRegProv = [WMIClass] "\\$Computer\root\default:StdRegProv"
 
                 ## Query the Component Based Servicing Reg Key
-                $registyComponentBasedServicing = $wmiStdRegProv.EnumKey($hklm, "SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\")
+                $registryCBSKeyPath = 'SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\'
+                $registryComponentBasedServicing = $wmiStdRegProv.EnumKey($hklm, $registryCBSKeyPath).sNames -contains "RebootPending"
 
                 ## Query WUAU from the registry
-                $registryWindowsUpdateAutoUpdate = $wmiStdRegProv.EnumKey($hklm, "SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\")
+                $registryAutoUpdateKeyPath = 'SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\'
+                $registryWindowsUpdateAutoUpdate = $wmiStdRegProv.EnumKey($hklm, $registryAutoUpdateKeyPath).sNames -contains "RebootRequired"
 
                 ## Query PendingFileRenameOperations from the registry
-                $registryPendingFileRenameOperations = $wmiStdRegProv.GetMultiStringValue($hklm, "SYSTEM\CurrentControlSet\Control\Session Manager\", "PendingFileRenameOperations")
-                if ($registryPendingFileRenameOperations.sValue)
-                {
-                    $pendingFileRenameOperation = $true
-                }
+                $registrySessionManagerKeyPath = 'SYSTEM\CurrentControlSet\Control\Session Manager\'
+                $registryPendingFileRenameOperations = $wmiStdRegProv.GetMultiStringValue($hklm, $registrySessionManagerKeyPath, "PendingFileRenameOperations").sValue
 
                 ## Query JoinDomain key from the registry - These keys are present if pending a reboot from a domain join operation
-                $registryNetlogon  = $wmiStdRegProv.EnumKey($hklm, "SYSTEM\CurrentControlSet\Services\Netlogon").sNames
+                $registryNetlogonKeyPath = 'SYSTEM\CurrentControlSet\Services\Netlogon'
+                $registryNetlogon = $wmiStdRegProv.EnumKey($hklm, $registryNetlogonKeyPath).sNames
                 $pendingDomainJoin = ($registryNetlogon -contains 'JoinDomain') -or ($registryNetlogon -contains 'AvoidSpnSet')
 
                 ## Query ComputerName and ActiveComputerName from the registry
-                $registryActiveComputerName = $wmiStdRegProv.GetStringValue($hklm, "SYSTEM\CurrentControlSet\Control\ComputerName\ActiveComputerName\", "ComputerName")
-                $registryComputerName       = $wmiStdRegProv.GetStringValue($hklm, "SYSTEM\CurrentControlSet\Control\ComputerName\ComputerName\", "ComputerName")
+                $registryActiveComputerNameKeyPath = 'SYSTEM\CurrentControlSet\Control\ComputerName\ActiveComputerName\'
+                $registryComputerNameKeyPath = 'SYSTEM\CurrentControlSet\Control\ComputerName\ComputerName\'
+                $registryActiveComputerName = $wmiStdRegProv.GetStringValue($hklm, $registryActiveComputerNameKeyPath, 'ComputerName')
+                $registryComputerName = $wmiStdRegProv.GetStringValue($hklm, $registryComputerNameKeyPath, 'ComputerName')
+                $pendingComputerRename = $registryActiveComputerName -ne $registryComputerName
 
-                if (($registryActiveComputerName -ne $registryComputerName) -or $pendingDomainJoin)
-                {
-                    $pendingComputerRenameOrDomainJoin = $true
-                }
-
-                $sccmClientSDK = $null
                 $CCMSplat = @{
                     NameSpace    = 'ROOT\ccm\ClientSDK'
                     Class        = 'CCM_ClientUtilities'
@@ -186,22 +172,30 @@ function Test-PendingReboot
                     $systemCenterConfigManager = $null
                 }
 
+                $isRebootPending = $registryComponentBasedServicing -or `
+                    $pendingComputerRename -or `
+                    $pendingDomainJoin -or `
+                    [bool]$registryPendingFileRenameOperations -or `
+                    $systemCenterConfigManager -or `
+                    $registryWindowsUpdateAutoUpdate
+
                 if ($PSBoundParameters.ContainsKey('Detailed'))
                 {
                     [PSCustomObject]@{
-                        ComputerName                      = $Computer
-                        ComponentBasedServicing           = $registyComponentBasedServicing.sNames -contains "RebootPending"
-                        WindowsUpdateAutoUpdate           = $registryWindowsUpdateAutoUpdate.sNames -contains "RebootRequired"
-                        SystemCenterConfigManager         = $systemCenterConfigManager
-                        PendingComputerRenameOrDomainJoin = $pendingComputerRenameOrDomainJoin
-                        PendingFileRenameOperations       = $pendingFileRenameOperation
-                        PendingFileRenameOperationsValue  = $registryPendingFileRenameOperations.sValue
-                        IsRebootPending                   = ($pendingComputerRenameOrDomainJoin -or $componentBasedServicing -or $WUAURebootReq -or $systemCenterConfigManager -or $pendingFileRenameOperation)
+                        ComputerName                     = $Computer
+                        ComponentBasedServicing          = $registryComponentBasedServicing
+                        PendingComputerRename            = $pendingComputerRename
+                        PendingDomainJoin                = $pendingDomainJoin
+                        PendingFileRenameOperations      = [bool]$registryPendingFileRenameOperations
+                        PendingFileRenameOperationsValue = $registryPendingFileRenameOperations
+                        SystemCenterConfigManager        = $systemCenterConfigManager
+                        WindowsUpdateAutoUpdate          = $registryWindowsUpdateAutoUpdate
+                        IsRebootPending                  = $isRebootPending
                     }
                 }
                 else
                 {
-                    [bool]($pendingComputerRenameOrDomainJoin -or $componentBasedServicing -or $WUAURebootReq -or $systemCenterConfigManager -or $pendingFileRenameOperation)
+                    return $isRebootPending
                 }
             }
 
