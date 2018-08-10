@@ -1,63 +1,92 @@
 <#
 .SYNOPSIS
-    Gets the pending reboot status on a local or remote computer.
+    Test the pending reboot status on a local and/or remote computer.
 
 .DESCRIPTION
-    This function will query the registry on a local or remote computer and determine if the
-    system is pending a reboot, from Microsoft updates, Configuration Manager Client SDK, Pending Computer
-    Rename, Domain Join or Pending File Rename Operations. For Windows 2008+ the function will query the
-    CBS registry key as another factor in determining pending reboot state.  "PendingFileRenameOperations"
-    and "Auto Update\RebootRequired" are observed as being consistant across Windows Server 2003 & 2008.
+    This function will query the registry on a local and/or remote computer and determine if the
+    system is pending a reboot, from Microsoft/Windows updates, Configuration Manager Client SDK, Pending
+    Computer Rename, Domain Join, Pending File Rename Operations and Component Based Servicing.
 
-    CBServicing = Component Based Servicing (Windows 2008+)
-    WindowsUpdate = Windows Update / Auto Update (Windows 2003+)
+    ComponentBasedServicing = Component Based Servicing
+    WindowsUpdate = Windows Update / Auto Update
     CCMClientSDK = SCCM 2012 Clients only (DetermineifRebootPending method) otherwise $null value
-    PendComputerRename = Detects either a computer rename or domain join operation (Windows 2003+)
-    PendFileRename = PendingFileRenameOperations (Windows 2003+)
-    PendFileRenVal = PendingFilerenameOperations registry value; used to filter if need be, some Anti-
-                     Virus leverage this key for def/dat removal, giving a false positive PendingReboot
+    PendingComputerRenameDomainJoin = Detects a pending computer rename and/or pending domain join
+    PendingFileRenameOperations = PendingFileRenameOperations, when this property returns true,
+                                  it can be a false positive
+    PendingFileRenameOperationsValue = PendingFilerenameOperations registry value; used to filter if need be,
+                                       Anti-Virus will leverage this key property for def/dat removal,
+                                       giving a false positive
 
 .PARAMETER ComputerName
-    A single Computer or an array of computer names.  The default is localhost ($env:COMPUTERNAME).
+    A single computer name or an array of computer names.  The default is localhost ($env:COMPUTERNAME).
 
-.PARAMETER ErrorLog
-    A single path to send error data to a log file.
+.PARAMETER Credential
+    Specifies a user account that has permission to perform this action. The default is the current user.
+    Type a username, such as User01, Domain01\User01, or User@Contoso.com. Or, enter a PSCredential object,
+    such as an object that is returned by the Get-Credential cmdlet. When you type a user name, you are
+    prompted for a password.
 
-.EXAMPLE
-    PS C:\> Get-PendingReboot -ComputerName (Get-Content C:\ServerList.txt) | Format-Table -AutoSize
+.PARAMETER Detailed
+    Indicates that this function returns a detailed result of pending reboot information, why the system is
+    pending a reboot, not just a true/false response.
 
-    Computer CBServicing WindowsUpdate CCMClientSDK PendFileRename PendFileRenVal RebootPending
-    -------- ----------- ------------- ------------ -------------- -------------- -------------
-    DC01           False         False                       False                        False
-    DC02           False         False                       False                        False
-    FS01           False         False                       False                        False
+.PARAMETER SkipConfigurationManagerClientCheck
+    Indicates that this function will not test the Client SDK WMI class that is provided by the System
+    Center Configuration Manager Client.  This parameter is useful when SCCM is not used/installed on
+    the targeted systems.
 
-    This example will capture the contents of C:\ServerList.txt and query the pending reboot
-    information from the systems contained in the file and display the output in a table. The
-    null values are by design, since these systems do not have the SCCM 2012 client installed,
-    nor was the PendingFileRenameOperations value populated.
-
-.EXAMPLE
-    PS C:\> Get-PendingReboot
-
-    Computer           : WKS01
-    CBServicing        : False
-    WindowsUpdate      : True
-    CCMClient          : False
-    PendComputerRename : False
-    PendFileRename     : False
-    PendFileRenVal     :
-    RebootPending      : True
-
-    This example will query the local machine for pending reboot information.
+.PARAMETER SkipPendingFileRenameOperationsCheck
+    Indicates that this function will not test the PendingFileRenameOperations MultiValue String property
+    of the Session Manager registry key.  This parameter is useful for eliminating possible false positives.
+    Many Anti-Virus packages will use the PendingFileRenameOperations MultiString Value in order to remove
+    stale definitions and/or .dat files.
 
 .EXAMPLE
-    PS C:\> $Servers = Get-Content C:\Servers.txt
-    PS C:\> Get-PendingReboot -Computer $Servers | Export-Csv C:\PendingRebootReport.csv -NoTypeInformation
+    PS C:\> Test-PendingReboot
 
-    This example will create a report that contains pending reboot information.
+    ComputerName IsRebootPending
+    ------------ ---------------
+    WKS01                   True
+
+    This example returns the ComputerName and IsRebootPending properties.
+
+.EXAMPLE
+    PS C:\> (Test-PendingReboot).IsRebootPending
+    True
+
+    This example will return a bool value based on the pending reboot test for the local computer.
+
+.EXAMPLE
+    PS C:\> Test-PendingReboot -ComputerName DC01 -Detailed
+
+    ComputerName                     : dc01
+    ComponentBasedServicing          : True
+    PendingComputerRenameDomainJoin  : False
+    PendingFileRenameOperations      : False
+    PendingFileRenameOperationsValue :
+    SystemCenterConfigManager        : False
+    WindowsUpdateAutoUpdate          : True
+    IsRebootPending                  : True
+
+    This example will test the pending reboot status for dc01, providing detailed information
+
+.EXAMPLE
+    PS C:\> Test-PendingReboot -ComputerName DC01 -SkipConfigurationManagerClientCheck -SkipPendingFileRenameOperationsCheck -Detailed
+
+    CommputerName                    : dc01
+    ComponentBasedServicing          : True
+    PendingComputerRenameDomainJoin  : False
+    PendingFileRenameOperations      : False
+    PendingFileRenameOperationsValue :
+    SystemCenterConfigManager        :
+    WindowsUpdateAutoUpdate          : True
+    IsRebootPending                  : True
 
 .LINK
+    Background:
+    https://blogs.technet.microsoft.com/heyscriptingguy/2013/06/10/determine-pending-reboot-statuspowershell-style-part-1/
+    https://blogs.technet.microsoft.com/heyscriptingguy/2013/06/11/determine-pending-reboot-statuspowershell-style-part-2/
+
     Component-Based Servicing:
     http://technet.microsoft.com/en-us/library/cc756291(v=WS.10).aspx
 
@@ -66,7 +95,7 @@
     http://technet.microsoft.com/en-us/library/cc960241.aspx
     http://blogs.msdn.com/b/hansr/archive/2006/02/17/patchreboot.aspx
 
-    SCCM 2012/CCM_ClientSDK:
+    CCM_ClientSDK:
     http://msdn.microsoft.com/en-us/library/jj902723.aspx
 
 .NOTES
@@ -98,12 +127,12 @@ function Test-PendingReboot
 
         [Parameter()]
         [Switch]
-        $SkipPendingFileRenameOperations
+        $SkipPendingFileRenameOperationsCheck
     )
 
     process
     {
-        foreach ($Computer in $ComputerName)
+        foreach ($computer in $ComputerName)
         {
             try
             {
@@ -144,13 +173,14 @@ function Test-PendingReboot
                 $invokeWmiMethodParameters.ArgumentList = @($hklm, 'SYSTEM\CurrentControlSet\Control\ComputerName\ComputerName\', 'ComputerName')
                 $registryComputerName = Invoke-WmiMethod @invokeWmiMethodParameters
 
-                $pendingComputerRename = $registryActiveComputerName -ne $registryComputerName
+                $pendingComputerRename = $registryActiveComputerName -ne $registryComputerName -or $pendingDomainJoin
 
                 ## Query PendingFileRenameOperations from the registry
-                if (-not $PSBoundParameters.ContainsKey('SkipPendingFileRenameOperations'))
+                if (-not $PSBoundParameters.ContainsKey('SkipPendingFileRenameOperationsCheck'))
                 {
                     $invokeWmiMethodParameters.ArgumentList = @($hklm, 'SYSTEM\CurrentControlSet\Control\Session Manager\', 'PendingFileRenameOperations')
                     $registryPendingFileRenameOperations = (Invoke-WmiMethod @invokeWmiMethodParameters).sValue
+                    $registryPendingFileRenameOperationsBool = [bool]$registryPendingFileRenameOperations
                 }
 
                 ## Query ClientSDK for pending reboot status, unless SkipConfigurationManagerClientCheck is present
@@ -164,30 +194,28 @@ function Test-PendingReboot
                     try
                     {
                         $sccmClientSDK = Invoke-WmiMethod @invokeWmiMethodParameters
+                        $systemCenterConfigManager = $sccmClientSDK.ReturnValue -eq 0 -and ($sccmClientSDK.IsHardRebootPending -or $sccmClientSDK.RebootPending)
                     }
                     catch
                     {
                         Write-Warning -Message ($script:localizedData.invokeWmiClientSDKError -f $computer)
                     }
-
-                    $systemCenterConfigManager = $sccmClientSDK.ReturnValue -eq 0 -and ($sccmClientSDK.IsHardRebootPending -or $sccmClientSDK.RebootPending)
                 }
 
                 $isRebootPending = $registryComponentBasedServicing -or `
                     $pendingComputerRename -or `
                     $pendingDomainJoin -or `
-                    $registryPendingFileRenameOperations -as [bool] -or `
+                    $registryPendingFileRenameOperationsBool -or `
                     $systemCenterConfigManager -or `
                     $registryWindowsUpdateAutoUpdate
 
                 if ($PSBoundParameters.ContainsKey('Detailed'))
                 {
                     [PSCustomObject]@{
-                        ComputerName                     = $Computer
+                        ComputerName                     = $computer
                         ComponentBasedServicing          = $registryComponentBasedServicing
-                        PendingComputerRename            = $pendingComputerRename
-                        PendingDomainJoin                = $pendingDomainJoin
-                        PendingFileRenameOperations      = [bool]$registryPendingFileRenameOperations
+                        PendingComputerRenameDomainJoin  = $pendingComputerRename
+                        PendingFileRenameOperations      = $registryPendingFileRenameOperationsBool
                         PendingFileRenameOperationsValue = $registryPendingFileRenameOperations
                         SystemCenterConfigManager        = $systemCenterConfigManager
                         WindowsUpdateAutoUpdate          = $registryWindowsUpdateAutoUpdate
@@ -196,7 +224,10 @@ function Test-PendingReboot
                 }
                 else
                 {
-                    return $isRebootPending
+                    [PSCustomObject]@{
+                        ComputerName    = $computer
+                        IsRebootPending = $isRebootPending
+                    }
                 }
             }
 
