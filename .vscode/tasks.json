@@ -1,0 +1,85 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+
+    // Start PowerShell
+    "windows": {
+        "options": {
+            "shell": {
+                "executable": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+                "args": [ "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command" ]
+            }
+        }
+    },
+    "linux": {
+        "options": {
+            "shell": {
+                "executable": "/usr/bin/pwsh",
+                "args": [ "-NoProfile", "-Command" ]
+            }
+        }
+    },
+    "osx": {
+        "options": {
+            "shell": {
+                "executable": "/usr/local/bin/pwsh",
+                "args": [ "-NoProfile", "-Command" ]
+            }
+        }
+    },
+
+    // Associate with test task runner
+    "tasks": [
+        {
+            "label": "Clean",
+            "type": "shell",
+            "command": "Invoke-psake build.psake.ps1 -taskList Clean",
+            "problemMatcher": []
+        },
+        {
+            "label": "Build",
+            "type": "shell",
+            "command": "Invoke-psake build.psake.ps1 -taskList Build",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "BuildHelp",
+            "type": "shell",
+            "command": "Invoke-psake build.psake.ps1 -taskList BuildHelp",
+            "problemMatcher": []
+        },
+        {
+            "label": "Analyze",
+            "type": "shell",
+            "command": "Invoke-psake build.psake.ps1 -taskList Analyze",
+            "problemMatcher": []
+        },
+        {
+            "label": "Install",
+            "type": "shell",
+            "command": "Invoke-psake build.psake.ps1 -taskList Install",
+            "problemMatcher": []
+        },
+        {
+            "label": "Publish",
+            "type": "shell",
+            "command": "Invoke-psake build.psake.ps1 -taskList Publish",
+            "problemMatcher": []
+        },
+        {
+            "label": "Test",
+            "type": "shell",
+            "command": "Invoke-Pester -PesterOption @{IncludeVSCodeMarker=$true}",
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            },
+            "problemMatcher": [ "$pester" ]
+        }
+	]
+}

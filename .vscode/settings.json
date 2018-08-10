@@ -1,0 +1,13 @@
+{
+    "workbench.iconTheme": "vscode-icons",
+    "workbench.colorTheme": "Sapphire",
+    "window.openFilesInNewWindow": "on",
+    "editor.codeLens": true,
+    "editor.fontSize": 17,
+    "editor.acceptSuggestionOnEnter": "off",
+    "editor.renderWhitespace": "boundary",
+    "terminal.integrated.fontSize": 17,
+    "terminal.integrated.shell.windows": "C:\\WINDOWS\\Sysnative\\WindowsPowerShell\\v1.0\\powershell.exe",
+    "editor.multiCursorModifier": "alt",
+    "files.trimTrailingWhitespace": true
+}
