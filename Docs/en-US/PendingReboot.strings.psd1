@@ -1,3 +1,3 @@
 ConvertFrom-StringData @'
-    Message = Message Text.
+    invokeWmiClientSDKError = Unable to query ClientSDK from {0}, consider using the SkipConfigurationManagerClientCheck parameter.
 '@
