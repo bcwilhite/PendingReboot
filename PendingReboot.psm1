@@ -1,5 +1,3 @@
-
-
 $script:localizedData = Import-LocalizedData -BaseDirectory "$PSScriptRoot\Docs\en-US" -FileName 'PendingReboot.strings.psd1'
 
 # Import everything in these folders

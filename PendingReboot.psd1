@@ -23,9 +23,6 @@ GUID = '7c868fa4-b23e-4994-b74a-e938aef933dd'
 # Author of this module
 Author = 'Brian Wilhite'
 
-# Company or vendor of this module
-CompanyName = 'Microsoft'
-
 # Copyright statement for this module
 Copyright = '(c) 2018 Brian Wilhite. All rights reserved.'
 
@@ -120,5 +117,3 @@ PrivateData = @{
 # DefaultCommandPrefix = ''
 
 }
-
-
