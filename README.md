@@ -18,7 +18,7 @@ Deploy the root folder to you PSModulePath, i.e. PendingReboot and PowerShelll w
 * **Credential**: Specifies a user account that has permission to perform this action. The default is the current user. Type a username, such as User01, Domain01\User01, or User@Contoso.com. Or, enter a PSCredential object, such as an object that is returned by the Get-Credential cmdlet. When you type a user name, you are prompted for a password.
 * **Detailed**: Indicates that this function returns a detailed result of pending reboot information, why the system is pending a reboot, not just a true/false response.
 * **SkipConfigurationManagerClientCheck**: Indicates that this function will not test the Client SDK WMI class that is provided by the System Center Configuration Manager Client.  This parameter is useful when SCCM is not used/installed on the targeted systems.
-* **SkipPendingFileRenameOperationsCheck**: Indicates that this function will not test the PendingFileRenameOperations MultiValue String property of the Session Manager registry key.  This parameter is useful for eliminating possible false positives. Many Anti-Virus packages will use the PendingFileRenameOperations MultiString Value in order to remove stale definitions and/or .dat files.
+* **SkipPendingFileRenameOperationsCheck**: Indicates that this function will not test the PendingFileRenameOperations MultiString Value property of the Session Manager registry key.  This parameter is useful for eliminating possible false positives. Many Anti-Virus packages will use the PendingFileRenameOperations MultiString Value in order to remove stale definitions and/or .dat files.
 
 ## Versions
 
