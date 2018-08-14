@@ -136,7 +136,6 @@ function Test-PendingReboot
         {
             try
             {
-
                 $invokeWmiMethodParameters = @{
                     Namespace    = 'root/default'
                     Class        = 'StdRegProv'
