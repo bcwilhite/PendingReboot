@@ -8,7 +8,7 @@ $script:moduleName = Split-Path -Path $PSScriptRoot -Leaf
 $script:moduleRoot = $PSScriptRoot
 $script:outPutFolder = "$PSScriptRoot\Release"
 $script:releaseModulePath = Join-Path -Path $script:outPutFolder  -ChildPath $script:moduleName
-$script:importFolders = @('Public','Private','Classes')
+$script:importFolders = @('Classes', 'Private', 'Public')
 $script:psmPath = Join-Path -Path $PSScriptRoot -ChildPath "Release\$($script:moduleName)\$($script:moduleName).psm1"
 $script:psdPath = Join-Path -Path $PSScriptRoot -ChildPath "Release\$($script:moduleName)\$($script:moduleName).psd1"
 $script:ps1XmlPath  = Join-Path -Path $PSScriptRoot -ChildPath "Release\$($script:moduleName)\$($script:moduleName).Format.ps1xml"
@@ -44,13 +44,6 @@ task Compile @compileParams {
     }
 
     New-Item -Path $script:psmPath -Force > $null
-
-    $addContentParams = @{
-        Value    = '$script:localizedData = Import-LocalizedData -BaseDirectory "$PSScriptRoot\Docs\en-US" -FileName ' + $script:moduleName + '.strings.psd1'
-        Encoding = 'utf8'
-        Path     = $script:psmPath
-    }
-    Add-Content @addContentParams
 
     foreach ($folder in $script:importFolders)
     {

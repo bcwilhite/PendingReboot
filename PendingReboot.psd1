@@ -3,7 +3,7 @@
     RootModule = 'PendingReboot.psm1'
 
     # Version number of this module.
-    ModuleVersion = '0.9.0.0'
+    ModuleVersion = '0.9.0.5'
 
     # ID used to uniquely identify this module
     GUID = '7c868fa4-b23e-4994-b74a-e938aef933dd'
