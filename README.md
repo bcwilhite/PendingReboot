@@ -24,6 +24,11 @@ Deploy the root folder to you PSModulePath, i.e. PendingReboot and PowerShelll w
 
 ## Versions
 
+### 0.9.0.6
+
+* Fixed a bug when querying multiple computers with different values returned unexpected results.
+  * Updated Pester test to account for this type of issue.
+
 ### 0.9.0.5
 
 * Added appveyor, build script and psdeploy
