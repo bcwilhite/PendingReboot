@@ -24,7 +24,7 @@ Deploy the root folder to you PSModulePath, i.e. PendingReboot and PowerShelll w
 
 ## Versions
 
-### 0.9.0.0
+### 0.9.0.4
 
 * Initial Release with major changes from the TechNet Gallery
   * The function/module received a major overhaul since coming over from the technet gallary.
