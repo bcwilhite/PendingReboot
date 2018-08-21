@@ -1,3 +1,5 @@
+[![Build status](https://ci.appveyor.com/api/projects/status/1vglgjk2d42n9fle/branch/master?svg=true)](https://ci.appveyor.com/project/bcwilhite/pendingreboot/branch/master)
+
 # PendingReboot
 
 Module to detect Windows OS pending reboots.
