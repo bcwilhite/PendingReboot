@@ -1,10 +1,10 @@
-[![Build status](https://ci.appveyor.com/api/projects/status/1vglgjk2d42n9fle/branch/master?svg=true)](https://ci.appveyor.com/project/bcwilhite/pendingreboot/branch/master)
-
 # PendingReboot
 
 Module to detect Windows OS pending reboots.
 
 This module leverages WMI in order to query the Registry for various pending reboot detections.
+
+[![Build status](https://ci.appveyor.com/api/projects/status/1vglgjk2d42n9fle/branch/master?svg=true)](https://ci.appveyor.com/project/bcwilhite/pendingreboot/branch/master)
 
 ## How to use
 
