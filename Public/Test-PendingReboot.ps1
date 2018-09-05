@@ -198,7 +198,7 @@ function Test-PendingReboot
                     catch
                     {
                         $systemCenterConfigManager = $null
-                        Write-Warning -Message ($script:localizedData.invokeWmiClientSDKError -f $computer)
+                        Write-Verbose -Message ($script:localizedData.invokeWmiClientSDKError -f $computer)
                     }
                 }
 
@@ -233,7 +233,7 @@ function Test-PendingReboot
 
             catch
             {
-                Write-Warning "$Computer`: $_"
+                Write-Verbose "$Computer`: $_"
             }
         }
     }
