@@ -8,7 +8,13 @@ This module leverages WMI in order to query the Registry for various pending reb
 
 ## How to use
 
-Deploy the root folder to you PSModulePath, i.e. PendingReboot and PowerShelll will automatically find/load the module.
+Deploy the PendingReboot folder from the Release folder to your PSModulePath, i.e. PendingReboot and PowerShell will automatically find/load the module.
+
+This module is also published on the [PowerShell Gallery](https://www.powershellgallery.com/packages/PendingReboot), so installing it via PowerShell is an option:
+
+```PowerShell
+Install-Module -Name PendingReboot
+```
 
 ## Functions
 
