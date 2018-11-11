@@ -136,7 +136,7 @@ function Test-PendingReboot
         {
             try
             {
-                $invokeWmiMethodParameters = @{
+                $invokeCimMethodParameters = @{
                     Namespace    = 'root/default'
                     Class        = 'StdRegProv'
                     Name         = 'EnumKey'
@@ -148,52 +148,67 @@ function Test-PendingReboot
 
                 if ($PSBoundParameters.ContainsKey('Credential'))
                 {
-                    $invokeWmiMethodParameters.Credential = $Credential
+                    $invokeCimMethodParameters.Credential = $Credential
                 }
 
                 ## Query the Component Based Servicing Reg Key
-                $invokeWmiMethodParameters.ArgumentList = @($hklm, 'SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\')
-                $registryComponentBasedServicing = (Invoke-WmiMethod @invokeWmiMethodParameters).sNames -contains 'RebootPending'
+                $argumentListEnumKey = @{
+                    hDefKey     = $hklm
+                    sSubKeyName = 'SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\'
+                }
+                $invokeCimMethodParameters.ArgumentList = $argumentListEnumKey
+                $registryComponentBasedServicing = (Invoke-CimMethod @invokeCimMethodParameters).sNames -contains 'RebootPending'
 
                 ## Query WUAU from the registry
-                $invokeWmiMethodParameters.ArgumentList = @($hklm, 'SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\')
-                $registryWindowsUpdateAutoUpdate = (Invoke-WmiMethod @invokeWmiMethodParameters).sNames -contains 'RebootRequired'
+                $argumentListEnumKey.sSubKeyName = 'SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\'
+                $invokeCimMethodParameters.ArgumentList = $argumentListEnumKey
+                $registryWindowsUpdateAutoUpdate = (Invoke-CimMethod @invokeCimMethodParameters).sNames -contains 'RebootRequired'
 
                 ## Query JoinDomain key from the registry - These keys are present if pending a reboot from a domain join operation
-                $invokeWmiMethodParameters.ArgumentList = @($hklm, 'SYSTEM\CurrentControlSet\Services\Netlogon')
-                $registryNetlogon = (Invoke-WmiMethod @invokeWmiMethodParameters).sNames
+                $argumentListEnumKey.sSubKeyName = 'SYSTEM\CurrentControlSet\Services\Netlogon'
+                $invokeCimMethodParameters.ArgumentList = $argumentListEnumKey
+                $registryNetlogon = (Invoke-CimMethod @invokeCimMethodParameters).sNames
                 $pendingDomainJoin = ($registryNetlogon -contains 'JoinDomain') -or ($registryNetlogon -contains 'AvoidSpnSet')
 
                 ## Query ComputerName and ActiveComputerName from the registry and setting the MethodName to GetMultiStringValue
-                $invokeWmiMethodParameters.Name = 'GetMultiStringValue'
-                $invokeWmiMethodParameters.ArgumentList = @($hklm, 'SYSTEM\CurrentControlSet\Control\ComputerName\ActiveComputerName\', 'ComputerName')
-                $registryActiveComputerName = Invoke-WmiMethod @invokeWmiMethodParameters
+                $argumentListGetMultiStringValue = @{
+                    hDefKey     = $hklm
+                    sSubKeyName = 'SYSTEM\CurrentControlSet\Control\ComputerName\ActiveComputerName\'
+                    sValueName  = 'ComputerName'
+                }
+                $invokeCimMethodParameters.Name = 'GetMultiStringValue'
+                $invokeCimMethodParameters.ArgumentList = $argumentListGetMultiStringValue
+                $registryActiveComputerName = Invoke-CimMethod @invokeCimMethodParameters
 
-                $invokeWmiMethodParameters.ArgumentList = @($hklm, 'SYSTEM\CurrentControlSet\Control\ComputerName\ComputerName\', 'ComputerName')
-                $registryComputerName = Invoke-WmiMethod @invokeWmiMethodParameters
+                $argumentListGetMultiStringValue.sSubKeyName = 'SYSTEM\CurrentControlSet\Control\ComputerName\ComputerName\'
+                $invokeCimMethodParameters.ArgumentList = $argumentListGetMultiStringValue
+                $registryComputerName = Invoke-CimMethod @invokeCimMethodParameters
 
                 $pendingComputerRename = $registryActiveComputerName -ne $registryComputerName -or $pendingDomainJoin
 
                 ## Query PendingFileRenameOperations from the registry
                 if (-not $PSBoundParameters.ContainsKey('SkipPendingFileRenameOperationsCheck'))
                 {
-                    $invokeWmiMethodParameters.ArgumentList = @($hklm, 'SYSTEM\CurrentControlSet\Control\Session Manager\', 'PendingFileRenameOperations')
-                    $registryPendingFileRenameOperations = (Invoke-WmiMethod @invokeWmiMethodParameters).sValue
+                    $argumentListGetMultiStringValue.sSubKeyName = 'SYSTEM\CurrentControlSet\Control\Session Manager\'
+                    $argumentListGetMultiStringValue.sValueName  = 'PendingFileRenameOperations'
+                    $invokeCimMethodParameters.ArgumentList = $argumentListGetMultiStringValue
+                    $registryPendingFileRenameOperations = (Invoke-CimMethod @invokeCimMethodParameters).sValue
                     $registryPendingFileRenameOperationsBool = [bool]$registryPendingFileRenameOperations
                 }
 
                 ## Query ClientSDK for pending reboot status, unless SkipConfigurationManagerClientCheck is present
                 if (-not $PSBoundParameters.ContainsKey('SkipConfigurationManagerClientCheck'))
                 {
-                    $invokeWmiMethodParameters.NameSpace = 'ROOT\ccm\ClientSDK'
-                    $invokeWmiMethodParameters.Class = 'CCM_ClientUtilities'
-                    $invokeWmiMethodParameters.Name = 'DetermineifRebootPending'
-                    $invokeWmiMethodParameters.Remove('ArgumentList')
+                    $invokeCimMethodParameters.NameSpace = 'ROOT\ccm\ClientSDK'
+                    $invokeCimMethodParameters.Class = 'CCM_ClientUtilities'
+                    $invokeCimMethodParameters.Name = 'DetermineifRebootPending'
+                    $invokeCimMethodParameters.Remove('ArgumentList')
 
                     try
                     {
-                        $sccmClientSDK = Invoke-WmiMethod @invokeWmiMethodParameters
-                        $systemCenterConfigManager = $sccmClientSDK.ReturnValue -eq 0 -and ($sccmClientSDK.IsHardRebootPending -or $sccmClientSDK.RebootPending)
+                        $sccmClientSDK = Invoke-CimMethod @invokeCimMethodParameters
+                        $sccmRebootPending = $sccmClientSDK.IsHardRebootPending -or $sccmClientSDK.RebootPending
+                        $systemCenterConfigManager = $sccmClientSDK.ReturnValue -eq 0 -and $sccmRebootPending
                     }
                     catch
                     {
