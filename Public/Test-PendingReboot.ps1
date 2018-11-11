@@ -140,8 +140,13 @@ function Test-PendingReboot
                     Namespace    = 'root/default'
                     Class        = 'StdRegProv'
                     Name         = 'EnumKey'
-                    ComputerName = $computer
                     ErrorAction  = 'Stop'
+                    Verbose      = $false
+                }
+
+                if ($PSBoundParameters.ContainsKey('ComputerName'))
+                {
+                    $invokeCimMethodParameters.ComputerName = $computer
                 }
 
                 $hklm = [UInt32] "0x80000002"
@@ -152,36 +157,36 @@ function Test-PendingReboot
                 }
 
                 ## Query the Component Based Servicing Reg Key
-                $argumentListEnumKey = @{
+                $argumentsEnumKey = @{
                     hDefKey     = $hklm
                     sSubKeyName = 'SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\'
                 }
-                $invokeCimMethodParameters.ArgumentList = $argumentListEnumKey
+                $invokeCimMethodParameters.Arguments = $argumentsEnumKey
                 $registryComponentBasedServicing = (Invoke-CimMethod @invokeCimMethodParameters).sNames -contains 'RebootPending'
 
                 ## Query WUAU from the registry
-                $argumentListEnumKey.sSubKeyName = 'SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\'
-                $invokeCimMethodParameters.ArgumentList = $argumentListEnumKey
+                $argumentsEnumKey.sSubKeyName = 'SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\'
+                $invokeCimMethodParameters.Arguments = $argumentsEnumKey
                 $registryWindowsUpdateAutoUpdate = (Invoke-CimMethod @invokeCimMethodParameters).sNames -contains 'RebootRequired'
 
                 ## Query JoinDomain key from the registry - These keys are present if pending a reboot from a domain join operation
-                $argumentListEnumKey.sSubKeyName = 'SYSTEM\CurrentControlSet\Services\Netlogon'
-                $invokeCimMethodParameters.ArgumentList = $argumentListEnumKey
+                $argumentsEnumKey.sSubKeyName = 'SYSTEM\CurrentControlSet\Services\Netlogon'
+                $invokeCimMethodParameters.Arguments = $argumentsEnumKey
                 $registryNetlogon = (Invoke-CimMethod @invokeCimMethodParameters).sNames
                 $pendingDomainJoin = ($registryNetlogon -contains 'JoinDomain') -or ($registryNetlogon -contains 'AvoidSpnSet')
 
                 ## Query ComputerName and ActiveComputerName from the registry and setting the MethodName to GetMultiStringValue
-                $argumentListGetMultiStringValue = @{
+                $argumentsGetMultiStringValue = @{
                     hDefKey     = $hklm
                     sSubKeyName = 'SYSTEM\CurrentControlSet\Control\ComputerName\ActiveComputerName\'
                     sValueName  = 'ComputerName'
                 }
                 $invokeCimMethodParameters.Name = 'GetMultiStringValue'
-                $invokeCimMethodParameters.ArgumentList = $argumentListGetMultiStringValue
+                $invokeCimMethodParameters.Arguments = $argumentsGetMultiStringValue
                 $registryActiveComputerName = Invoke-CimMethod @invokeCimMethodParameters
 
-                $argumentListGetMultiStringValue.sSubKeyName = 'SYSTEM\CurrentControlSet\Control\ComputerName\ComputerName\'
-                $invokeCimMethodParameters.ArgumentList = $argumentListGetMultiStringValue
+                $argumentsGetMultiStringValue.sSubKeyName = 'SYSTEM\CurrentControlSet\Control\ComputerName\ComputerName\'
+                $invokeCimMethodParameters.Arguments = $argumentsGetMultiStringValue
                 $registryComputerName = Invoke-CimMethod @invokeCimMethodParameters
 
                 $pendingComputerRename = $registryActiveComputerName -ne $registryComputerName -or $pendingDomainJoin
@@ -189,9 +194,9 @@ function Test-PendingReboot
                 ## Query PendingFileRenameOperations from the registry
                 if (-not $PSBoundParameters.ContainsKey('SkipPendingFileRenameOperationsCheck'))
                 {
-                    $argumentListGetMultiStringValue.sSubKeyName = 'SYSTEM\CurrentControlSet\Control\Session Manager\'
-                    $argumentListGetMultiStringValue.sValueName  = 'PendingFileRenameOperations'
-                    $invokeCimMethodParameters.ArgumentList = $argumentListGetMultiStringValue
+                    $argumentsGetMultiStringValue.sSubKeyName = 'SYSTEM\CurrentControlSet\Control\Session Manager\'
+                    $argumentsGetMultiStringValue.sValueName  = 'PendingFileRenameOperations'
+                    $invokeCimMethodParameters.Arguments = $argumentsGetMultiStringValue
                     $registryPendingFileRenameOperations = (Invoke-CimMethod @invokeCimMethodParameters).sValue
                     $registryPendingFileRenameOperationsBool = [bool]$registryPendingFileRenameOperations
                 }
@@ -202,7 +207,7 @@ function Test-PendingReboot
                     $invokeCimMethodParameters.NameSpace = 'ROOT\ccm\ClientSDK'
                     $invokeCimMethodParameters.Class = 'CCM_ClientUtilities'
                     $invokeCimMethodParameters.Name = 'DetermineifRebootPending'
-                    $invokeCimMethodParameters.Remove('ArgumentList')
+                    $invokeCimMethodParameters.Remove('Arguments')
 
                     try
                     {
