@@ -149,12 +149,12 @@ function Test-PendingReboot
                     $invokeCimMethodParameters.ComputerName = $computer
                 }
 
-                $hklm = [UInt32] "0x80000002"
-
                 if ($PSBoundParameters.ContainsKey('Credential'))
                 {
                     $invokeCimMethodParameters.Credential = $Credential
                 }
+
+                $hklm = [UInt32] "0x80000002"
 
                 ## Query the Component Based Servicing Reg Key
                 $argumentsEnumKey = @{
@@ -178,7 +178,7 @@ function Test-PendingReboot
                 ## Query ComputerName and ActiveComputerName from the registry and setting the MethodName to GetMultiStringValue
                 $argumentsGetMultiStringValue = @{
                     hDefKey     = $hklm
-                    sSubKeyName = 'SYSTEM\CurrentControlSet\Control\ComputerName\ActiveComputerName\'
+                    sSubKeyName = 'SYSTEM\CurrentControlSet\Control\ComputerName\ActiveComputerName'
                     sValueName  = 'ComputerName'
                 }
                 $invokeCimMethodParameters.Name = 'GetMultiStringValue'
