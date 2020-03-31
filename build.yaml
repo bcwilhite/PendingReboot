@@ -3,7 +3,7 @@
 #          ModuleBuilder Configuration             #
 ####################################################
 CopyDirectories:
-  - Docs
+  - en-US
 Encoding: UTF8
 VersionedOutputDirectory: true
 

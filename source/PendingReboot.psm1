@@ -1,4 +1,4 @@
-$script:localizedData = Import-LocalizedData -BaseDirectory "$PSScriptRoot\Docs\en-US" -FileName 'PendingReboot.strings.psd1'
+$script:localizedData = Import-LocalizedData -BaseDirectory "$PSScriptRoot\en-US" -FileName 'PendingReboot.strings.psd1'
 
 # Import everything in these folders
 foreach ($folder in @('Private', 'Public', 'Classes'))
