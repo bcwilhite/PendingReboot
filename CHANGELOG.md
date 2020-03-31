@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+* Migration to Azure DevOps
+
 ## 0.9.0.6
 
 * Fixed a bug when querying multiple computers with different values returned unexpected results.
