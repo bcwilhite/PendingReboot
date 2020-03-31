@@ -105,7 +105,8 @@
 function Test-PendingReboot
 {
     [CmdletBinding()]
-    param(
+    param
+    (
         [Parameter(Position = 0, ValueFromPipeline = $true, ValueFromPipelineByPropertyName = $true)]
         [Alias("CN", "Computer")]
         [String[]]
