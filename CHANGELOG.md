@@ -1,6 +1,6 @@
 # Versions
 
-## Unreleased
+## [Unreleased]
 
 * Migration to Azure DevOps
 
