@@ -4,16 +4,16 @@
 
 * Migration to Azure DevOps
 
-## 0.9.0.6
+## [0.9.0.6]
 
 * Fixed a bug when querying multiple computers with different values returned unexpected results.
   * Updated Pester test to account for this type of issue.
 
-## 0.9.0.5
+## [0.9.0.5]
 
 * Added appveyor, build script and psdeploy
 
-## 0.9.0.0
+## [0.9.0.0]
 
 * Initial Release with major changes from the TechNet Gallery
   * The function/module received a major overhaul since coming over from the technet gallary.
