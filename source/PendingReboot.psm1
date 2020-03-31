@@ -4,7 +4,7 @@ $script:localizedData = Import-LocalizedData -BaseDirectory "$PSScriptRoot\en-US
 foreach ($folder in @('Private', 'Public', 'Classes'))
 {
     $root = Join-Path -Path $PSScriptRoot -ChildPath $folder
-    if(Test-Path -Path $root)
+    if (Test-Path -Path $root)
     {
         Write-Verbose "processing folder $root"
         $files = Get-ChildItem -Path $root -Filter *.ps1
