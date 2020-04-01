@@ -46,6 +46,7 @@ Pester:
   ExcludeFromCodeCoverage:
   Script:
     - tests/Unit
+    - tests/Integration
   ExcludeTag:
   Tag:
   CodeCoverageThreshold: 85
@@ -83,6 +84,6 @@ TaskHeader: |
 GitHubConfig:
   GitHubFilesToAdd:
     - 'CHANGELOG.md'
-  GitHubConfigUserName: dscbot
-  GitHubConfigUserEmail: dsccommunity@outlook.com
+  GitHubConfigUserName: bcwilhite
+  GitHubConfigUserEmail: bcwilhite@live.com
   UpdateChangelogOnPrerelease: false

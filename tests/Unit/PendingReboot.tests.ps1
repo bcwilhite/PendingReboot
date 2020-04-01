@@ -7,13 +7,12 @@ $script:projectName = (Get-ChildItem -Path "$script:projectPath\*\*.psd1" | Wher
 
 $script:parentModule = Get-Module -Name $script:projectName -ListAvailable | Select-Object -First 1
 $script:subModuleName = (Split-Path -Path $PSCommandPath -Leaf) -replace '\.Tests.ps1'
-$script:subModulesFolder = Join-Path -Path $script:parentModule.ModuleBase -ChildPath 'Modules'
 
 Remove-Module -Name $script:parentModule -Force -ErrorAction 'SilentlyContinue'
 Import-Module $script:parentModule -Force -ErrorAction 'Stop'
 #endregion HEADER
 
-InModuleScope $script:subModuleName {
+InModuleScope $script:parentModule {
     Describe 'Test-PendingReboot' {
         Context 'CMM Client Utilities error handling' {
             It 'Attempts to query CCM Client Utilities but fails with a warning' {
