@@ -34,6 +34,9 @@
 
             # A URL to the main website for this project.
             ProjectUri = 'https://github.com/bcwilhite/PendingReboot/'
+
+            # ReleaseNotes of this module
+            ReleaseNotes = ''
         }
     }
 }
