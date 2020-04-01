@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-* Migration to Azure DevOps
+* Migration to Azure DevOps.
 
 ## [0.9.0.6] - 2018-08-20
 
