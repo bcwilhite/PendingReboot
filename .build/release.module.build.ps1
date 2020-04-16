@@ -258,8 +258,9 @@ task package_module_nupkg {
 
 task publish_module_to_gallery -if ((!(Get-Command nuget -ErrorAction SilentlyContinue)) -and $GalleryApiToken) {
 
+    Get-PSRepository | Unregister-PSRepository
     $location = 'https://www.myget.org/F/powerstigtest/api/v2'
-    Register-PSRepository -SourceLocation $location -Name $PSModuleFeed -PublishLocation "$location/package" -InstallationPolicy Trusted -Default
+    Register-PSRepository -SourceLocation $location -Name PSGallery -PublishLocation "$location/package" -InstallationPolicy Trusted
 
     if (!(Split-Path $OutputDirectory -IsAbsolute))
     {
