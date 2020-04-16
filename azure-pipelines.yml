@@ -191,7 +191,7 @@ stages:
       - job: Deploy_Module
         displayName: 'Deploy Module'
         pool:
-          vmImage: 'ubuntu 16.04'
+          vmImage: 'windows-2019'
         steps:
           - task: DownloadBuildArtifacts@0
             displayName: 'Download Build Artifact'
@@ -206,6 +206,5 @@ stages:
             inputs:
               filePath: './build.ps1'
               arguments: '-tasks publish'
-              pwsh: true
             env:
               GalleryApiToken: $(GalleryApiToken)
