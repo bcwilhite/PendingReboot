@@ -15,6 +15,13 @@ BuildWorkflow:
     - build
     - test
 
+  CreateTempGallery: |
+    {
+      $env:PSModuleFeed = 'MyGetPowerSTIGTest'
+      $location = 'https://www.myget.org/F/powerstigtest/api/v2'
+      Register-PSRepository -SourceLocation $location -Name $env:PSModuleFeed -PublishLocation "$location/package" -InstallationPolicy Trusted
+    }
+
   build:
     - Clean
     - Build_Module_ModuleBuilder
@@ -33,6 +40,7 @@ BuildWorkflow:
     - Pester_if_Code_Coverage_Under_Threshold
 
   publish:
+    - CreateTempGallery
     - Publish_release_to_GitHub
     - publish_module_to_gallery # runs if nuget is not available
 
