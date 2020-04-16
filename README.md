@@ -1,6 +1,6 @@
 # PendingReboot
 
-[![Build status](https://ci.appveyor.com/api/projects/status/1vglgjk2d42n9fle/branch/master?svg=true)](https://ci.appveyor.com/project/bcwilhite/pendingreboot/branch/master)
+[![Build Status](https://dev.azure.com/PendingReboot/PendingReboot/_apis/build/status/bcwilhite.PendingReboot?branchName=master)](https://dev.azure.com/PendingReboot/PendingReboot/_build/latest?definitionId=1&branchName=master)
 
 Module to detect Windows OS pending reboots.
 
