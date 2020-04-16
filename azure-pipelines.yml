@@ -208,14 +208,4 @@ stages:
               arguments: '-tasks publish'
               pwsh: true
             env:
-              GitHubToken: $(GitHubToken)
               GalleryApiToken: $(GalleryApiToken)
-          - task: PowerShell@2
-            name: sendChangelogPR
-            displayName: 'Send Changelog PR'
-            inputs:
-              filePath: './build.ps1'
-              arguments: '-tasks Create_ChangeLog_GitHub_PR'
-              pwsh: true
-            env:
-              GitHubToken: $(GitHubToken)
