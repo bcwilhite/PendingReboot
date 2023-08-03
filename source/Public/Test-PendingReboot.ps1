@@ -133,108 +133,123 @@ function Test-PendingReboot
 
     process
     {
-        foreach ($computer in $ComputerName)
+        foreach ($ComputerNameItem in $ComputerName)
         {
             try
             {
-                $invokeWmiMethodParameters = @{
-                    Namespace    = 'root/default'
-                    Class        = 'StdRegProv'
-                    Name         = 'EnumKey'
-                    ComputerName = $computer
-                    ErrorAction  = 'Stop'
+                ## Establish a CimSession
+                $CredentialSplat = @{}
+                if ($PSBoundParameters.ContainsKey('Credential')) {
+                    $CredentialSplat.Credential = $Credential
                 }
+                $CimSession = New-CimSession -ComputerName $ComputerNameItem @CredentialSplat -ErrorAction Stop
 
-                $hklm = [UInt32] "0x80000002"
-
-                if ($PSBoundParameters.ContainsKey('Credential'))
-                {
-                    $invokeWmiMethodParameters.Credential = $Credential
+                $InvokeCimMethodSplat = @{
+                    CimSession = $CimSession
+                    Namespace  = 'root\CIMv2'
+                    ClassName  = 'StdRegProv'
+                    Name       = 'EnumKey'
+                    Arguments  = @{
+                        hDefKey     = [UInt32] "0x80000002" # HKLM
+                        sSubKeyName = $null
+                    }
                 }
 
                 ## Query the Component Based Servicing Reg Key
-                $invokeWmiMethodParameters.ArgumentList = @($hklm, 'SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\')
-                $registryComponentBasedServicing = (Invoke-WmiMethod @invokeWmiMethodParameters).sNames -contains 'RebootPending'
+                $InvokeCimMethodSplat.Arguments.sSubKeyName = 'SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing'
+                $RegistryComponentBasedServicing = (Invoke-CimMethod @InvokeCimMethodSplat).sNames -contains 'RebootPending'
 
                 ## Query WUAU from the registry
-                $invokeWmiMethodParameters.ArgumentList = @($hklm, 'SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\')
-                $registryWindowsUpdateAutoUpdate = (Invoke-WmiMethod @invokeWmiMethodParameters).sNames -contains 'RebootRequired'
+                $InvokeCimMethodSplat.Arguments.sSubKeyName = 'SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update'
+                $RegistryWindowsUpdateAutoUpdate = (Invoke-CimMethod @InvokeCimMethodSplat).sNames -contains 'RebootRequired'
 
                 ## Query JoinDomain key from the registry - These keys are present if pending a reboot from a domain join operation
-                $invokeWmiMethodParameters.ArgumentList = @($hklm, 'SYSTEM\CurrentControlSet\Services\Netlogon')
-                $registryNetlogon = (Invoke-WmiMethod @invokeWmiMethodParameters).sNames
-                $pendingDomainJoin = ($registryNetlogon -contains 'JoinDomain') -or ($registryNetlogon -contains 'AvoidSpnSet')
+                $InvokeCimMethodSplat.Arguments.sSubKeyName = 'SYSTEM\CurrentControlSet\Services\Netlogon'
+                $RegistryNetlogon = (Invoke-CimMethod @InvokeCimMethodSplat).sNames
+                $PendingDomainJoin = ($RegistryNetlogon -contains 'JoinDomain') -or ($RegistryNetlogon -contains 'AvoidSpnSet')
 
                 ## Query ComputerName and ActiveComputerName from the registry and setting the MethodName to GetMultiStringValue
-                $invokeWmiMethodParameters.Name = 'GetMultiStringValue'
-                $invokeWmiMethodParameters.ArgumentList = @($hklm, 'SYSTEM\CurrentControlSet\Control\ComputerName\ActiveComputerName\', 'ComputerName')
-                $registryActiveComputerName = Invoke-WmiMethod @invokeWmiMethodParameters
+                $InvokeCimMethodSplat.Name = 'GetStringValue'
 
-                $invokeWmiMethodParameters.ArgumentList = @($hklm, 'SYSTEM\CurrentControlSet\Control\ComputerName\ComputerName\', 'ComputerName')
-                $registryComputerName = Invoke-WmiMethod @invokeWmiMethodParameters
+                $InvokeCimMethodSplat.Arguments.sSubKeyName = 'SYSTEM\CurrentControlSet\Control\ComputerName\ActiveComputerName'
+                $InvokeCimMethodSplat.Arguments.sValueName = 'ComputerName'
+                $RegistryActiveComputerName = (Invoke-CimMethod @InvokeCimMethodSplat).sValue
 
-                $pendingComputerRename = $registryActiveComputerName -ne $registryComputerName -or $pendingDomainJoin
+                $InvokeCimMethodSplat.Arguments.sSubKeyName = 'SYSTEM\CurrentControlSet\Control\ComputerName\ComputerName'
+                $InvokeCimMethodSplat.Arguments.sValueName = 'ComputerName'
+                $RegistryComputerName = (Invoke-CimMethod @InvokeCimMethodSplat).sValue
+
+                $PendingComputerRename = $RegistryActiveComputerName -ne $RegistryComputerName -or $PendingDomainJoin
 
                 ## Query PendingFileRenameOperations from the registry
                 if (-not $PSBoundParameters.ContainsKey('SkipPendingFileRenameOperationsCheck'))
                 {
-                    $invokeWmiMethodParameters.ArgumentList = @($hklm, 'SYSTEM\CurrentControlSet\Control\Session Manager\', 'PendingFileRenameOperations')
-                    $registryPendingFileRenameOperations = (Invoke-WmiMethod @invokeWmiMethodParameters).sValue
-                    $registryPendingFileRenameOperationsBool = [bool]$registryPendingFileRenameOperations
+                    $InvokeCimMethodSplat.Arguments.sSubKeyName = 'SYSTEM\CurrentControlSet\Control\Session Manager'
+                    $InvokeCimMethodSplat.Arguments.sValueName = 'PendingFileRenameOperations'
+                    $RegistryPendingFileRenameOperations = (Invoke-CimMethod @InvokeCimMethodSplat).sValue
+                    $RegistryPendingFileRenameOperationsBool = [bool]$RegistryPendingFileRenameOperations
+
                 }
 
                 ## Query ClientSDK for pending reboot status, unless SkipConfigurationManagerClientCheck is present
                 if (-not $PSBoundParameters.ContainsKey('SkipConfigurationManagerClientCheck'))
                 {
-                    $invokeWmiMethodParameters.NameSpace = 'ROOT\ccm\ClientSDK'
-                    $invokeWmiMethodParameters.Class = 'CCM_ClientUtilities'
-                    $invokeWmiMethodParameters.Name = 'DetermineifRebootPending'
-                    $invokeWmiMethodParameters.Remove('ArgumentList')
+                    $InvokeCimMethodSplat = @{
+                        CimSession  = $CimSession
+                        Namespace   = 'root\ccm\ClientSDK'
+                        ClassName   = 'CCM_ClientUtilities'
+                        Name        = 'DetermineifRebootPending'
+                    }
 
-                    try
+                    $SCCMClientSDKError = $null
+                    $SCCMClientSDK = Invoke-CimMethod @InvokeCimMethodSplat -ErrorAction SilentlyContinue -ErrorVariable SCCMClientSDKError
+
+                    if ($SCCMClientSDKError)
                     {
-                        $sccmClientSDK = Invoke-WmiMethod @invokeWmiMethodParameters
-                        $systemCenterConfigManager = $sccmClientSDK.ReturnValue -eq 0 -and ($sccmClientSDK.IsHardRebootPending -or $sccmClientSDK.RebootPending)
+                        $SystemCenterConfigManager = $null
+                        Write-Verbose $SCCMClientSDKError.Exception.Message
+                        Write-Verbose ($script:localizedData.invokeWmiClientSDKError -f $ComputerNameItem)
                     }
-                    catch
+                    else
                     {
-                        $systemCenterConfigManager = $null
-                        Write-Verbose -Message ($script:localizedData.invokeWmiClientSDKError -f $computer)
+                        $SystemCenterConfigManager = $SCCMClientSDK.ReturnValue -eq 0 -and ($SCCMClientSDK.IsHardRebootPending -or $SCCMClientSDK.RebootPending)
                     }
+
                 }
 
-                $isRebootPending = $registryComponentBasedServicing -or `
-                    $pendingComputerRename -or `
-                    $pendingDomainJoin -or `
-                    $registryPendingFileRenameOperationsBool -or `
-                    $systemCenterConfigManager -or `
-                    $registryWindowsUpdateAutoUpdate
+                $IsRebootPending = $RegistryComponentBasedServicing -or `
+                    $PendingComputerRename -or `
+                    $PendingDomainJoin -or `
+                    $RegistryPendingFileRenameOperations -or `
+                    $SystemCenterConfigManager -or `
+                    $RegistryWindowsUpdateAutoUpdate
 
                 if ($PSBoundParameters.ContainsKey('Detailed'))
                 {
                     [PSCustomObject]@{
-                        ComputerName                     = $computer
-                        ComponentBasedServicing          = $registryComponentBasedServicing
-                        PendingComputerRenameDomainJoin  = $pendingComputerRename
+                        ComputerName                     = $ComputerNameItem
+                        ComponentBasedServicing          = $RegistryComponentBasedServicing
+                        PendingComputerRenameDomainJoin  = $PendingComputerRename
                         PendingFileRenameOperations      = $registryPendingFileRenameOperationsBool
                         PendingFileRenameOperationsValue = $registryPendingFileRenameOperations
-                        SystemCenterConfigManager        = $systemCenterConfigManager
-                        WindowsUpdateAutoUpdate          = $registryWindowsUpdateAutoUpdate
-                        IsRebootPending                  = $isRebootPending
+                        SystemCenterConfigManager        = $SystemCenterConfigManager
+                        WindowsUpdateAutoUpdate          = $RegistryWindowsUpdateAutoUpdate
+                        IsRebootPending                  = $IsRebootPending
                     }
                 }
                 else
                 {
                     [PSCustomObject]@{
-                        ComputerName    = $computer
-                        IsRebootPending = $isRebootPending
+                        ComputerName    = $ComputerNameItem
+                        IsRebootPending = $IsRebootPending
                     }
                 }
             }
-
-            catch
+            finally
             {
-                Write-Verbose "$Computer`: $_"
+                if ( $null -ne $CimSession ) {
+                    Remove-CimSession -CimSession $CimSession
+                }
             }
         }
     }
